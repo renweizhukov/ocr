@@ -43,6 +43,10 @@ int main(int argc, char** argv)
     Mat imgSharpGray;
     cvtColor(imgSharp, imgSharpGray, COLOR_BGR2GRAY);
 
+    // Display the grayscale image.
+    namedWindow("The grayscale image", WINDOW_AUTOSIZE);
+    imshow("The grayscale image", imgSharpGray);
+
     double minVal = 0.0;
     double maxVal = 0.0;
     minMaxLoc(imgSharpGray, &minVal, &maxVal);
@@ -68,6 +72,9 @@ int main(int argc, char** argv)
         printf("[ERROR]: Failed to write the thresholded image into %s.\n\n", argv[2]);
         return -1;
     }
+
+    waitKey(0);
+    destroyAllWindows();
 
     return 0;
 }
