@@ -47,8 +47,15 @@ int main(int argc, char** argv)
     namedWindow("The grayscale image", WINDOW_AUTOSIZE);
     imshow("The grayscale image", imgSharpGray);
 
+    double minVal = 0.0;
+    double maxVal = 0.0;
+    minMaxLoc(imgSharpGray, &minVal, &maxVal);
+    printf("[INFO]: The grayscale image after Unsharp Masking: minVal = %f, maxVal = %f.\n",
+        minVal, maxVal);
+
+    double thresh = minVal + 0.6*(maxVal - minVal);
     Mat imgThresholded;
-    adaptiveThreshold(imgSharpGray, imgThresholded, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 31, 0);
+    threshold(imgSharpGray, imgThresholded, thresh, 255, THRESH_BINARY);
 
     // Display the thresholded image.
     namedWindow("The thresholded image", WINDOW_AUTOSIZE);
