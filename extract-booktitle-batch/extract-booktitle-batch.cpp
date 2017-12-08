@@ -86,23 +86,6 @@ Mat PreprocessImg(const Mat& srcImg)
     return imgSharp;
 }
 
-Mat Bgr2Hs(const Mat& bgrImg)
-{
-    Mat hsvImg;
-    Mat hsImg;
-
-    // colorChannels is either HSV or HS.
-    cvtColor(bgrImg, hsvImg, COLOR_BGR2HSV);
-
-    // Remove the last channel "Value".
-    hsImg.create(hsvImg.rows, hsvImg.cols, CV_8UC2);
-    int fromToMap[4] = {0, 0, 1, 1};
-
-    mixChannels(vector<Mat>{hsvImg}, vector<Mat>{hsImg}, fromToMap, 2);
-
-    return hsImg;
-}
-
 Point GetTemplateMatchingPoint(
     const Mat& srcImg,
     const Mat& templImg,
@@ -130,19 +113,19 @@ Point GetTemplateMatchingPoint(
 }
 
 void ExtractTitleViaTemplateMatching(
-    const Mat& titleHsImg,
-    const vector<Mat>& bookCoverHsImgs,
+    const Mat& titleImgSobel,
+    const vector<Mat>& bookCoverImgSobels,
     const vector<Mat>& bookCoverImgs,
     vector<Mat>& croppedTitleImgs)
 {
-    for (size_t imgIndex = 0; imgIndex < bookCoverHsImgs.size(); ++imgIndex)
+    for (size_t imgIndex = 0; imgIndex < bookCoverImgSobels.size(); ++imgIndex)
     {
         // Do the template matching and find the best match point.
         Mat result;
-        Point matchPoint = GetTemplateMatchingPoint(bookCoverHsImgs[imgIndex], titleHsImg, result);
+        Point matchPoint = GetTemplateMatchingPoint(bookCoverImgSobels[imgIndex], titleImgSobel, result);
 
         // Crop the patch of the source image which best matches the template image.
-        Mat croppedImg = bookCoverImgs[imgIndex](Rect(matchPoint.x, matchPoint.y, titleHsImg.cols, titleHsImg.rows));
+        Mat croppedImg = bookCoverImgs[imgIndex](Rect(matchPoint.x, matchPoint.y, titleImgSobel.cols, titleImgSobel.rows));
 
         croppedTitleImgs.push_back(croppedImg);
     }
@@ -326,14 +309,16 @@ int main(int argc, char** argv)
 
     printf("[INFO]: Load %ld images of book covers.\n", bookCoverImgs.size());
 
-    // Convert the BGR images into HSV and remove the Value channel to minimize the effects of illuminance.
-    Mat titleHsImg = Bgr2Hs(titleImg);
+    // Get the Sobel derivative of images.
+    Mat titleImgSobel;
+    Sobel(titleImg, titleImgSobel, CV_32F, 1, 1);
 
-    vector<Mat> bookCoverHsImgs;
+    vector<Mat> bookCoverImgSobels;
     for (const auto& img: bookCoverImgs)
     {
-        Mat hsImg = Bgr2Hs(img);
-        bookCoverHsImgs.push_back(hsImg);
+        Mat bookCoverImgSobel;
+        Sobel(img, bookCoverImgSobel, CV_32F, 1, 1);
+        bookCoverImgSobels.push_back(bookCoverImgSobel);
     }
 
     vector<Mat> croppedTitleImgs;
@@ -351,8 +336,8 @@ int main(int argc, char** argv)
         // Do the template matching, find the best match point, and then crop the patch of the book cover
         // images which best matches the template image.
         ExtractTitleViaTemplateMatching(
-            titleHsImg,
-            bookCoverHsImgs,
+            titleImgSobel,
+            bookCoverImgSobels,
             bookCoverImgs,
             croppedTitleImgs);
     } else {
@@ -360,7 +345,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    for (size_t imgIndex = 0; imgIndex < bookCoverHsImgs.size(); ++imgIndex)
+    for (size_t imgIndex = 0; imgIndex < bookCoverImgSobels.size(); ++imgIndex)
     {
         if (croppedTitleImgs[imgIndex].empty())
         {

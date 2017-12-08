@@ -51,7 +51,7 @@ OcrPreprocessor::OcrPreprocessor(
     }
     else if (m_method == ExtractMethod::TemplateMatching)
     {
-        m_titleHsImg = Bgr2Hs(m_titleImg);
+        Sobel(m_titleImg, m_titleImgSobel, CV_32F, 1, 1);
     }
 }
 
@@ -171,23 +171,6 @@ Mat OcrPreprocessor::SharpenImg(const Mat& img)
     return res;
 }
 
-Mat OcrPreprocessor::Bgr2Hs(const Mat& bgrImg)
-{
-    Mat hsvImg;
-    Mat hsImg;
-
-    // colorChannels is either HSV or HS.
-    cvtColor(bgrImg, hsvImg, COLOR_BGR2HSV);
-
-    // Remove the last channel "Value".
-    hsImg.create(hsvImg.rows, hsvImg.cols, CV_8UC2);
-    int fromToMap[4] = {0, 0, 1, 1};
-
-    mixChannels(vector<Mat>{hsvImg}, vector<Mat>{hsImg}, fromToMap, 2);
-
-    return hsImg;
-}
-
 Point OcrPreprocessor::GetTemplateMatchingPoint(
     const Mat& srcImg,
     const Mat& templImg,
@@ -201,15 +184,12 @@ Point OcrPreprocessor::GetTemplateMatchingPoint(
 
     // Do the Template Matching and Normalize.
     matchTemplate(srcImg, templImg, tmpResult, TM_CCOEFF_NORMED);
-    //normalize(tmpResult, tmpResult, 0, 1, NORM_MINMAX);
 
     // Localize the best match with minMaxLoc.
     double maxVal;
     Point maxLoc;
 
     minMaxLoc(tmpResult, nullptr, &maxVal, nullptr, &maxLoc);
-
-    printf("[INFO]: maxVal = %f.\n", maxVal);
 
     if (result.needed())
     {
@@ -240,9 +220,10 @@ Rect OcrPreprocessor::ShiftAndResizeRect(
 Mat OcrPreprocessor::ExtractCircledDigitsViaTemplateMatching(
     const Mat& bookCoverImg)
 {
-    Mat bookCoverHsImg = Bgr2Hs(bookCoverImg);
+    Mat bookCoverImgSobel;
+    Sobel(bookCoverImg, bookCoverImgSobel, CV_32F, 1, 1);
 
-    Point matchPoint = GetTemplateMatchingPoint(bookCoverHsImg, m_titleHsImg, noArray());
+    Point matchPoint = GetTemplateMatchingPoint(bookCoverImgSobel, m_titleImgSobel, noArray());
 
     // Shift and resize the rectangle such that it will contain the circled digits.
     Rect circledDigitsRect = ShiftAndResizeRect(matchPoint.x, matchPoint.y);

@@ -35,7 +35,7 @@ private:
 
     ExtractMethod m_method;
     cv::Mat m_titleImg;
-    cv::Mat m_titleHsImg; // The title image with only Hue and Saturation channels
+    cv::Mat m_titleImgSobel; // The Sobel derivative of the title image
 
     // The circled digits may be outside the series title. After we find
     // the rectangular region of the series title in the book cover, we
@@ -60,7 +60,6 @@ private:
 
     cv::Mat SharpenImg(const cv::Mat& img);
 
-    cv::Mat Bgr2Hs(const cv::Mat& bgrImg);
     cv::Point GetTemplateMatchingPoint(
         const cv::Mat& srcImg,
         const cv::Mat& templImg,
