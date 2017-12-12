@@ -5,6 +5,8 @@
  *      Author: renwei
  */
 
+#include <vector>
+
 #include "OcrPreprocessor.h"
 
 using namespace std;
@@ -106,9 +108,20 @@ Mat OcrPreprocessor::BlackWhiteThresholding(
     const double scaleFactor,
     const Mat& circledDigitsImg)
 {
-    Mat blackWhiteImg;
+    Mat grayImg;
+    cvtColor(circledDigitsImg, grayImg, COLOR_BGR2GRAY);
 
-    // TODO
+    double minVal = 0.0;
+    double maxVal = 0.0;
+    minMaxLoc(grayImg, &minVal, &maxVal);
+
+    Mat resizedImg;
+    resize(grayImg, resizedImg, Size(0, 0), scaleFactor, scaleFactor);
+
+    double thresh = minVal + 0.3*(maxVal - minVal);
+
+    Mat blackWhiteImg;
+    threshold(resizedImg, blackWhiteImg, thresh, 255, THRESH_BINARY_INV);
 
     return blackWhiteImg;
 }
@@ -290,10 +303,57 @@ Mat OcrPreprocessor::ExtractCircledDigitsViaHoughTransform(
     const Mat& bookCoverImg)
 {
     // Convert the BGR image into grayscale.
+    Mat bookCoverGrayImg;
+    cvtColor(bookCoverImg, bookCoverGrayImg, COLOR_BGR2GRAY);
+
+    Mat bookCoverGrayEqualizedImg;
+    equalizeHist(bookCoverGrayImg, bookCoverGrayEqualizedImg);
+
+    // Use the Hough circle transform to find the circle.
+    vector<Vec3f> circles;
+    HoughCircles(
+        bookCoverGrayEqualizedImg,
+        circles,
+        HOUGH_GRADIENT,
+        2,
+        bookCoverGrayEqualizedImg.cols/3,
+        50,
+        50,
+        m_minRadius,
+        m_maxRadius);
 
     Mat circledDigitsImg;
 
+    if (circles.empty())
+    {
+        printf("[ERROR]: Can't find any circles.\n\n");
+        return circledDigitsImg;
+    }
 
+    Vec3f maxCircle;
+    for (const auto& circle: circles)
+    {
+        printf("[DEBUG]: Find a circle at (%f, %f) with radius %f.\n", circle[0], circle[1], circle[2]);
+        if (circle[1] > 170.0)
+        {
+            continue;
+        }
+        else if (maxCircle[2] < circle[2])
+        {
+            maxCircle = circle;
+        }
+    }
 
+    if (maxCircle[2] == 0.0)
+    {
+        printf("[ERROR]: Can't find a matched circle.\n\n");
+        return circledDigitsImg;
+    }
+
+    const unsigned int bufferWidth = 10;
+    Point rectTopLeft(maxCircle[0] - maxCircle[2] - bufferWidth, maxCircle[1] - maxCircle[2] - bufferWidth);
+    Rect circledDigitsRect(rectTopLeft.x, rectTopLeft.y, 2*(maxCircle[2] + bufferWidth), 2*(maxCircle[2] + bufferWidth));
+
+    circledDigitsImg = bookCoverImg(circledDigitsRect);
     return circledDigitsImg;
 }

@@ -75,3 +75,52 @@ void Utility::SegmentFullFilename(
         }
     }
 }
+
+// Courtesy of https://stackoverflow.com/questions/10167534/how-to-find-out-what-type-of-a-mat-object-is-with-mattype-in-opencv.
+string Utility::CvType2Str(const int type)
+{
+    string typeStr("CV_");
+
+    uchar depth = type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+    switch (depth)
+    {
+    case CV_8U:
+        typeStr += "8U";
+        break;
+
+    case CV_8S:
+        typeStr += "8S";
+        break;
+
+    case CV_16U:
+        typeStr += "16U";
+        break;
+
+    case CV_16S:
+        typeStr += "16S";
+        break;
+
+    case CV_32S:
+        typeStr += "32S";
+        break;
+
+    case CV_32F:
+        typeStr += "32F";
+        break;
+
+    case CV_64F:
+        typeStr += "64F";
+        break;
+
+    default:
+        typeStr += "User";
+        break;
+    }
+
+    typeStr += "C";
+    typeStr += (chans+'0');
+
+    return typeStr;
+}

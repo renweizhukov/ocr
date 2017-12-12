@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include <opencv2/core.hpp>
+
 #include <boost/program_options.hpp>
 
 class Utility
@@ -31,6 +33,8 @@ public:
         std::string& dir,
         std::string& filename,
         std::string& extension);
+
+    static std::string CvType2Str(const int type);
 };
 
 #endif /* INCLUDES_UTILITY_H_ */
